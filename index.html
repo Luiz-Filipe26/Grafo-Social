@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distribuição Circular</title>
+    <style>
+        canvas {
+            display: block;
+            margin: auto;
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="main-canvas" width="500" height="500"></canvas>
+    <script>
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawCirclePoints(ctx, circle, point, numOfPoints) {
+            const { centerX, centerY, radius } = circle;
+            const { size, color } = point;
+
+            for (let i = 0; i < numOfPoints; i++) {
+                const angle = (2 * Math.PI / numOfPoints) * i;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, 2 * Math.PI);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        const fs = require('fs');
+
+        function parseEdges(filePath) {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const lines = content.split('\n').filter(line => line.trim() !== '');
+
+            return lines.map(line => {
+                const match = line.trim().match(/^(.+?)\s*-\s*(.+)$/);
+                if (match) {
+                    return { v1: match[1].trim(), v2: match[2].trim() };
+                }
+                return null;
+            }).filter(edge => edge !== null);
+        }
+
+        const circle = { centerX: 250, centerY: 250, radius: 200 };
+        const point = { size: 5, color: 'blue' };
+        drawCirclePoints(ctx, circle, point, 50);
+    </script>
+</body>
+
+</html>
