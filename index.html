@@ -4,184 +4,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distribuição Circular</title>
+    <title>Grafo Social</title>
     <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f9fafb;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        nav {
+            width: 100%;
+            background-color: #1E90FF;
+            padding: 10px 20px;
+            color: white;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        h1 {
+            color: #1E90FF;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 36px;
+            font-weight: 600;
+        }
+
+        .info-card {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .info-card h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .info-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        #file-input {
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #fff;
+            transition: background-color 0.3s;
+            display: block;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        #file-input:hover {
+            background-color: #f1f1f1;
+        }
+
+        section {
+            margin-top: 40px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        section h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
         canvas {
             display: block;
-            margin: auto;
-            background-color: #f0f0f0;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        #chart_div {
+            margin-top: 20px;
+            height: 600px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
 
 <body>
+    <nav>
+        Grafo Social
+    </nav>
+
+    <h1>Visualize Conexões Sociais</h1>
+
+    <div class="info-card">
+        <h2>Bem-vindo ao Grafo Social</h2>
+        <p>Este aplicativo permite que você visualize a estrutura de conexões de um grafo social baseado em um arquivo de texto. Importe um arquivo para gerar um gráfico interativo e uma visualização gráfica das conexões.</p>
+    </div>
+
     <input type="file" id="file-input" accept=".txt" />
-    <canvas id="main-canvas" width="500" height="500"></canvas>
-    <script>
-        class Vertex {
-            constructor(name) {
-                this.name = name;
-                this.x = undefined;
-                this.y = undefined;
-            }
-        }
 
-        class Edge {
-            constructor(v1, v2) {
-                this.v1 = v1;
-                this.v2 = v2;
-            }
-        }
+    <section>
+        <h2>Visualização das Conexões</h2>
+        <canvas id="main-canvas" width="500" height="500"></canvas>
+    </section>
 
-        class Circle {
-            constructor(centerX, centerY, radius) {
-                this.centerX = centerX;
-                this.centerY = centerY;
-                this.radius = radius;
-            }
-        }
+    <section>
+        <h2>Gráfico de Graus</h2>
+        <div id="chart_div"></div>
+    </section>
 
-        class Point {
-            constructor(size, color) {
-                this.size = size;
-                this.color = color;
-            }
-        }
-
-        function parseEdges(content) {
-            const lines = content.split('\n').filter(line => line.trim() !== '');
-
-            const nameToVertice = new Map();
-            const edges = [];
-            const edgeSet = new Set(); // Auxiliar para garantir unicidade
-
-            lines.forEach(line => {
-                const match = line.trim().match(/^(.+?)\s*-\s*(.+)$/);
-                if (match) {
-                    const v1Name = match[1].trim();
-                    const v2Name = match[2].trim();
-
-                    if (!nameToVertice.has(v1Name)) {
-                        nameToVertice.set(v1Name, new Vertex(v1Name));
-                    }
-                    if (!nameToVertice.has(v2Name)) {
-                        nameToVertice.set(v2Name, new Vertex(v2Name));
-                    }
-
-                    const v1 = nameToVertice.get(v1Name);
-                    const v2 = nameToVertice.get(v2Name);
-
-                    const sortedEdge = [v1Name, v2Name].sort().join('-');
-                    if (!edgeSet.has(sortedEdge)) {
-                        edgeSet.add(sortedEdge);
-                        edges.push(new Edge(v1, v2));
-                    }
-                }
-            });
-
-            return { edges, nameToVertice };
-        }
-
-        function buildVerticeToConnecteds(edges) {
-            const verticeToConnecteds = new Map();
-
-            edges.forEach(({ v1, v2 }) => {
-                if (!verticeToConnecteds.has(v1)) verticeToConnecteds.set(v1, []);
-                if (!verticeToConnecteds.has(v2)) verticeToConnecteds.set(v2, []);
-
-                verticeToConnecteds.get(v1).push(v2);
-                verticeToConnecteds.get(v2).push(v1);
-            });
-
-            return verticeToConnecteds;
-        }
-
-        function getCoordinatesOfPoints(circle, vertices) {
-            const { centerX, centerY, radius } = circle;
-            const numOfPoints = vertices.length;
-
-            vertices.forEach((vertex, index) => {
-                const angle = (2 * Math.PI / numOfPoints) * index;
-                vertex.x = centerX + radius * Math.cos(angle);
-                vertex.y = centerY + radius * Math.sin(angle);
-            });
-
-            return vertices;
-        }
-
-        function drawNode(ctx, x, y, name, point) {
-            ctx.beginPath();
-            ctx.arc(x, y, point.size, 0, 2 * Math.PI);
-            ctx.fillStyle = point.color;
-            ctx.fill();
-            ctx.closePath();
-
-            ctx.font = '12px Arial';
-            ctx.fillStyle = 'black';
-            ctx.textAlign = 'center';
-            ctx.fillText(name, x, y - 10);
-        }
-
-        function drawEdge(ctx, vertex1, vertex2) {
-            ctx.beginPath();
-            ctx.moveTo(vertex1.x, vertex1.y);
-            ctx.lineTo(vertex2.x, vertex2.y);
-            ctx.strokeStyle = 'gray';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.closePath();
-        }
-
-        function drawGraph(ctx, vertices, verticeToConnecteds, point) {
-            const processedVertices = new Set();
-
-            vertices.forEach(vertex => {
-                const connectedVertices = verticeToConnecteds.get(vertex) || [];
-
-                connectedVertices.forEach(connectedVertex => {
-                    if (processedVertices.has(connectedVertex)) {
-                        return;
-                    }
-
-                    drawEdge(ctx, vertex, connectedVertex);
-                });
-
-                processedVertices.add(vertex);
-
-                drawNode(ctx, vertex.x, vertex.y, vertex.name, point);
-            });
-        }
-
-
-        function readFile(content) {
-            const { edges, nameToVertice } = parseEdges(content);
-            console.log('Edges:', edges);
-
-            const verticeToConnecteds = buildVerticeToConnecteds(edges);
-            console.log('VerticeToConnecteds:', verticeToConnecteds);
-
-            const vertices = Array.from(nameToVertice.values());
-            console.log('Vertices:', vertices);
-
-            const circle = new Circle(250, 250, 200);
-            const point = new Point(5, 'blue');
-
-            const coordinates = getCoordinatesOfPoints(circle, vertices);
-            drawGraph(ctx, coordinates, verticeToConnecteds, point);
-        }
-
-        const canvas = document.getElementById('main-canvas');
-        const ctx = canvas.getContext('2d');
-
-        document.getElementById('file-input').addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = () => readFile(reader.result);
-            reader.readAsText(file);
-        });
-    </script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="module" src="./app.js"></script>
 </body>
 
 </html>
